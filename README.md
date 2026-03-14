@@ -6,7 +6,8 @@ This project demonstrates the deployment of a Python Flask Manufacturing Applica
 
 The project implements rolling updates to ensure zero downtime deployment, allowing new application versions to be released seamlessly without interrupting service availability.
 
-❗ Problem Statement
+ Problem Statement
+ -----------------
 
 Modern manufacturing applications must remain highly available while new features and fixes are continuously deployed. Traditional deployment methods often cause service downtime, manual configuration errors, and inconsistent environments across development and production systems.
 
@@ -55,7 +56,7 @@ Git	Version control
  Project Structure
 ---------------------
 manufacturing-k8s-app/
-│
+
 ├── app/
 │   ├── app.py
 │   └── requirements.txt
@@ -71,9 +72,10 @@ manufacturing-k8s-app/
 │   └── ci-cd-pipeline.yml
 │
 ├── Jenkinsfile
-│
 └── README.md
-🐳 Step 1 — Dockerize the Application
+
+
+**Step 1** — Dockerize the Application
 
 Build the Docker image:
 
@@ -82,7 +84,7 @@ docker build -t manufacturing-app:1.0 .
 Run locally:
 
 docker run -p 5000:5000 manufacturing-app:1.0
-☸️ Step 2 — Start Kubernetes Cluster
+**Step 2** — Start Kubernetes Cluster
 
 Start Minikube:
 
@@ -91,7 +93,7 @@ minikube start
 Verify cluster:
 
 kubectl get nodes
-📦 Step 3 — Create Kubernetes Deployment
+**Step 3** — Create Kubernetes Deployment
 
 Apply deployment manifest:
 
@@ -100,7 +102,7 @@ kubectl apply -f k8s/deployment.yaml
 Check pods:
 
 kubectl get pods
-🌐 Step 4 — Expose the Application
+**Step 4**— Expose the Application
 
 Expose the deployment:
 
@@ -109,9 +111,9 @@ kubectl apply -f k8s/service.yaml
 Access the application:
 
 minikube service manufacturing-service
-🔄 Step 5 — Rolling Updates (Zero Downtime)
+**Step 5** — Rolling Updates (Zero Downtime)
 
-Update the container image:
+**Update the container image:**
 
 kubectl set image deployment/manufacturing-deployment app=manufacturing-app:2.0
 
@@ -138,7 +140,7 @@ Kubernetes deployment update
 
 Rolling update of application
 
-Tools used:
+**Tools used:**
 
 Jenkins Pipeline
 
