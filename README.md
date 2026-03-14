@@ -26,11 +26,13 @@ This project solves the problem by using Docker for containerization, Kubernetes
  Architecture Overview
 -------------------------
 The deployment follows a modern DevOps architecture:
-
+```
 Developer → Git Repository → CI/CD Pipeline (Jenkins / GitHub Actions)
            → Docker Image Build → Container Registry
            → Kubernetes Deployment → Service Exposure
            → Users Access Application
+```
+           
 Key Components
 --------------
 Git – Source code version control
@@ -55,6 +57,7 @@ Git	Version control
 
  Project Structure
 ---------------------
+```
 manufacturing-k8s-app/
 
 ├── app/
@@ -73,9 +76,9 @@ manufacturing-k8s-app/
 │
 ├── Jenkinsfile
 └── README.md
+```
 
-
-**Step 1** — Dockerize the Application
+Step 1 — Dockerize the Application
 
 Build the Docker image:
 
@@ -84,7 +87,8 @@ docker build -t manufacturing-app:1.0 .
 Run locally:
 
 docker run -p 5000:5000 manufacturing-app:1.0
-**Step 2** — Start Kubernetes Cluster
+
+Step 2 — Start Kubernetes Cluster
 
 Start Minikube:
 
@@ -93,7 +97,8 @@ minikube start
 Verify cluster:
 
 kubectl get nodes
-**Step 3** — Create Kubernetes Deployment
+
+Step 3 — Create Kubernetes Deployment
 
 Apply deployment manifest:
 
@@ -102,7 +107,8 @@ kubectl apply -f k8s/deployment.yaml
 Check pods:
 
 kubectl get pods
-**Step 4**— Expose the Application
+
+Step 4— Expose the Application
 
 Expose the deployment:
 
@@ -111,7 +117,8 @@ kubectl apply -f k8s/service.yaml
 Access the application:
 
 minikube service manufacturing-service
-**Step 5** — Rolling Updates (Zero Downtime)
+
+Step 5 — Rolling Updates (Zero Downtime)
 
 **Update the container image:**
 
@@ -148,14 +155,14 @@ GitHub Actions
 
  Key Features
  -------------
-
+```
 ✔ Containerized Flask application
 ✔ Kubernetes deployment with scalable pods
 ✔ Zero-downtime rolling updates
 ✔ CI/CD automation
 ✔ Infrastructure as Code using YAML manifests
 ✔ Local Kubernetes testing with Minikube
-
+```
  Testing the Deployment
 ---------------------------
 
@@ -185,7 +192,9 @@ Deployment to cloud Kubernetes (AWS EKS / GKE)
 
  Authors
  --------
+```
 Om Tiwari
 Paridhi Shirwalkar
 Nitesh Chourasiya
 Mradul Jain
+```
