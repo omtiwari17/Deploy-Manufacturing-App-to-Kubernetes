@@ -1,0 +1,6 @@
+﻿# Always use LF for these files (Linux containers need LF)
+Dockerfile text eol=lf
+requirements.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
