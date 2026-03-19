@@ -1,180 +1,199 @@
 # Deploy Manufacturing App to Kubernetes
 
-**A Complete DevOps Workflow with Docker · CI/CD · Rolling Updates**
+A complete DevOps implementation for containerizing and deploying a Multi-Agent Manufacturing System onto AWS EKS using Docker, Kubernetes, and GitHub Actions CI/CD with zero-downtime rolling updates.
 
 ---
 
-## 01 — Project Overview
+## Project Overview
 
-This project demonstrates the deployment of a Python Flask Manufacturing Application onto a Kubernetes cluster (Minikube) using a complete DevOps workflow. The system uses containerization, CI/CD automation, and Kubernetes orchestration to manage application deployment efficiently.
+This project takes the Multi-Agent Manufacturing System built with Python, Streamlit, and CrewAI and deploys it to a production-grade AWS EKS Kubernetes cluster. The deployment is fully automated a single `git push` triggers the entire build, push, and deploy pipeline with no manual steps required.
 
-The project implements **rolling updates** to ensure zero downtime deployment, allowing new application versions to be released seamlessly without interrupting service availability.
-
----
-
-## 02 — Problem Statement
-
-Modern manufacturing applications must remain highly available while new features and fixes are continuously deployed. Traditional deployment methods often cause service downtime, manual configuration errors, and inconsistent environments across development and production systems.
-
-**This project solves the problem by ensuring:**
-
-- Reliable and repeatable application deployment
-- Zero downtime during updates
-- Scalable infrastructure management
-- Automated CI/CD workflows
+The key feature is zero-downtime Rolling Updates. When a new version is deployed, Kubernetes replaces pods gradually ensuring the app stays available throughout the entire update process.
 
 ---
 
-## 03 — Architecture Overview
+## Key Features
 
-The deployment follows a modern DevOps pipeline:
+- Automated CI/CD pipeline triggered on every `git push`
+- Zero-downtime Rolling Updates using Kubernetes deployment strategy
+- Docker containerization with GitHub-based build no local builds needed
+- Two-repository architecture- DevOps repo contains zero application code
+- Deployed on AWS EKS with auto-provisioned nodes and public Load Balancer
+- Health-check-driven deployments using Streamlit's `/_stcore/health` endpoint
+- All credentials managed via GitHub Secrets nothing stored in code or images
+---
 
-```
-Developer → Git Repository → CI/CD Pipeline (Jenkins / GitHub Actions)
-         → Docker Image Build → Container Registry
-         → Kubernetes Deployment → Service Exposure
-         → Users Access Application
-```
+## Tech Stack
 
-**Key Components**
-
-| Component | Role |
+| Category | Technology |
 |---|---|
-| Git | Source code version control |
-| Docker | Containerization of the Flask application |
-| Jenkins / GitHub Actions | CI/CD automation |
-| Kubernetes (Minikube) | Container orchestration |
-| Rolling Updates | Zero-downtime deployment strategy |
+| Application | Python, Streamlit, CrewAI, Google Gemini LLM |
+| Containerization | Docker, Docker Hub |
+| Orchestration | Kubernetes (AWS EKS) |
+| CI/CD | GitHub Actions |
+| Cloud | AWS EKS, AWS EC2, AWS Load Balancer |
+| Version Control | Git, GitHub |
 
 ---
 
-## 04 — Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| Python Flask | Manufacturing web application |
-| Docker | Containerization |
-| Kubernetes | Container orchestration |
-| Minikube | Local Kubernetes cluster |
-| Jenkins / GitHub Actions | CI/CD automation |
-| Git | Version control |
-
----
-
-## 05 — Project Structure
+## Project Structure
 
 ```
-manufacturing-k8s-app/
-├── app/
-│   ├── app.py
-│   └── requirements.txt
-├── docker/
-│   └── Dockerfile
+Deploy-Manufacturing-App-to-Kubernetes/
+│
+├── Dockerfile                        # Clones AI repo and runs Streamlit
+├── requirements.txt                  # Clean Linux-compatible dependencies
+├── .dockerignore                     # Files excluded from Docker build
+├── .gitattributes                    # Git line ending rules for Linux
+│
 ├── k8s/
-│   ├── deployment.yaml
-│   └── service.yaml
-├── .github/workflows/
-│   └── ci-cd-pipeline.yml
-├── Jenkinsfile
-└── README.md
+│   ├── deployment.yaml               # Pods, replicas, rolling update config
+│   └── service.yaml                  # AWS LoadBalancer service on port 80
+│
+└── .github/
+    └── workflows/
+        └── deploy.yml                # Full CI/CD pipeline definition
 ```
 
 ---
 
-## 06 — Deployment Steps
+## Two-Repository Strategy
 
-### Step 1 — Dockerize the Application
+The AI application code and DevOps infrastructure are maintained in completely separate repositories. The `Dockerfile` clones the `Multi-agent-system` repo at build time using `git clone`, keeping this repo pure infrastructure. This means the AI team and DevOps team can work independently without interfering with each other.
 
-Build and run the Docker image locally:
+---
 
+## Deployment Steps
+
+Follow these steps to deploy this project from scratch.
+
+**Prerequisites**
+- AWS account with an IAM user that has EKS and EC2 permissions
+- Docker Desktop installed
+- AWS CLI installed and configured (`aws configure`)
+- kubectl installed
+- Docker Hub account
+
+**Step 1- Clone this repository**
 ```bash
-docker build -t manufacturing-app:1.0 .
-docker run -p 5000:5000 manufacturing-app:1.0
+git clone https://github.com/omtiwari17/Deploy-Manufacturing-App-to-Kubernetes.git
+cd Deploy-Manufacturing-App-to-Kubernetes
 ```
 
-### Step 2 — Start Kubernetes Cluster
+**Step 2- Create AWS EKS Cluster**
 
+Go to AWS Console → EKS → Create Cluster. Use Custom configuration with Auto Mode enabled, name it `multi-agent-cluster`, select region `ap-south-1`, and attach your cluster IAM role. Wait 10–15 minutes for the cluster to become Active.
+
+**Step 3- Connect kubectl to the cluster**
 ```bash
-minikube start
+aws eks update-kubeconfig --region ap-south-1 --name multi-agent-cluster
 kubectl get nodes
 ```
 
-### Step 3 — Create Kubernetes Deployment
+**Step 4- Tag VPC subnets for Load Balancer**
 
-```bash
-kubectl apply -f k8s/deployment.yaml
-kubectl get pods
+Go to AWS Console → VPC → Subnets. For each public subnet (ones with an Internet Gateway in their route table), add this tag:
+```
+Key:   kubernetes.io/role/elb
+Value: 1
 ```
 
-### Step 4 — Expose the Application
+**Step 5- Add GitHub Secrets**
 
+Go to your GitHub repo → Settings → Secrets and variables → Actions and add these secrets:
+```
+DOCKER_USERNAME        → your Docker Hub username
+DOCKER_PASSWORD        → your Docker Hub access token
+AWS_ACCESS_KEY_ID      → your IAM user access key
+AWS_SECRET_ACCESS_KEY  → your IAM user secret key
+AWS_REGION             → ap-south-1
+```
+
+**Step 6- Push to trigger the pipeline**
+```bash
+git push origin main
+```
+
+Go to the Actions tab on GitHub and watch all stages complete. The pipeline builds the image, pushes to Docker Hub, and deploys to EKS automatically.
+
+**Step 7- Fix service selector and security group**
 ```bash
 kubectl apply -f k8s/service.yaml
-minikube service manufacturing-service
 ```
 
-### Step 5 — Rolling Updates (Zero Downtime)
+Go to AWS Console → EC2 → worker node → Security Group → Edit inbound rules. Add port 80 and port 8501 with source `0.0.0.0/0`.
 
+**Step 8- Get the app URL**
 ```bash
-# Update to new version
-kubectl set image deployment/manufacturing-deployment app=manufacturing-app:2.0
+kubectl get services
+```
 
-# Monitor rollout
-kubectl rollout status deployment/manufacturing-deployment
+Copy the `EXTERNAL-IP` value and open `http://EXTERNAL-IP` in any browser.
 
-# Rollback if needed
-kubectl rollout undo deployment/manufacturing-deployment
+---
+
+## CI/CD Pipeline Stages
+
+```
+Stage 1 — Checkout
+  └─ Pull latest code from DevOps repository
+
+Stage 2 — Docker Login
+  └─ Authenticate with Docker Hub using stored secrets
+
+Stage 3 — Build Image
+  └─ Build Docker image on GitHub runner
+  └─ Dockerfile clones Multi-agent-system repo inside
+
+Stage 4 — Push Image
+  └─ Push tiwariom/multi-agent-manufacturing-system:latest to Docker Hub
+
+Stage 5 — AWS Auth
+  └─ Configure AWS credentials from GitHub Secrets
+  └─ Update kubeconfig to point kubectl at EKS cluster
+
+Stage 6 — Deploy
+  └─ kubectl apply k8s/deployment.yaml
+  └─ kubectl apply k8s/service.yaml
+
+Stage 7 — Verify
+  └─ kubectl rollout status — waits until all pods are healthy
+  └─ kubectl get pods + services — confirms live state
 ```
 
 ---
 
-## 07 — CI/CD Pipeline
+## Zero-Downtime Rolling Update
 
-The pipeline automates the full deployment lifecycle:
+The deployment is configured with `replicas: 2`, `maxSurge: 1`, and `maxUnavailable: 0`. This means Kubernetes always spins up a new pod and waits for it to pass the health check before terminating an old one. Users never experience downtime during any deployment. The health check uses Streamlit's built-in `/_stcore/health` endpoint.
 
-| # | Stage | Action |
+---
+
+## GitHub Secrets Required
+
+Before the pipeline can run, these five secrets must be added to the repository under Settings → Secrets and variables → Actions `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`.
+
+---
+
+## Related Repository
+
+AI Application → https://github.com/omtiwari17/Multi-agent-system
+
+Docker Hub Image → https://hub.docker.com/r/tiwariom/multi-agent-manufacturing-system
+
+---
+
+## Group Members
+
+| Sr No | Name | Enrollment Number |
 |---|---|---|
-| 1 | Source Control | Code pushed to Git repository |
-| 2 | Image Build | Docker image built from source |
-| 3 | Registry Push | Image pushed to container registry |
-| 4 | Deploy | Kubernetes deployment updated |
-| 5 | Rolling Update | Zero-downtime rollout executed |
-
-**Tools:** Jenkins Pipeline · GitHub Actions
+| 01 | Om Tiwari | EN22CS301669 |
+| 02 | Paridhi Shirwalkar | EN22CS301684 |
+| 03 | Nitesh Chourasiya | EN22CS301660 |
+| 04 | Mradul Jain | EN22CS301616 |
 
 ---
 
-## 08 — Key Features
-
-- ✔ Containerized Flask application
-- ✔ Kubernetes deployment with scalable pods
-- ✔ Zero-downtime rolling updates
-- ✔ Automated CI/CD pipeline
-- ✔ Infrastructure as Code using YAML manifests
-- ✔ Local Kubernetes testing with Minikube
-
----
-
-## 09 — Testing the Deployment
-
-```bash
-kubectl get pods       # Verify pods are running
-kubectl get svc        # Check service endpoints
-kubectl logs <pod>     # Stream application logs
-```
-
----
-
-## 10 — Future Enhancements
-
-- Helm chart deployment
-- Horizontal Pod Autoscaling (HPA)
-- Monitoring with Prometheus & Grafana
-- Kubernetes Ingress configuration
-- Cloud deployment to AWS EKS / GKE
-
----
-
-## 11 — Authors
-
-Om Tiwari · Paridhi Shirwalkar · Nitesh Chourasiya · Mradul Jain
+- **Institution**- Medicaps University, Datagami Skill Based Course
+- **Academic Year**- 2025-2026
+- **Industry Mentor**- Prof. Akshay Saxena
