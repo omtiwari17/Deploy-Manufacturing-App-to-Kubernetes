@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-manufacturing-system        # Name of this deployment in K8s
+  labels:
+    app: multi-agent-manufacturing-system       # Label used to group related K8s objects
+
+spec:
+  # ─────────────────────────────────────────────
+  # Replicas — run 2 pods at all times
+  # During rolling update, both stay alive until
+  # new pods are healthy — zero downtime
+  # ─────────────────────────────────────────────
+  replicas: 2
+
+  # ─────────────────────────────────────────────
+  # Selector — tells K8s which pods this
+  # deployment manages (must match template labels)
+  # ─────────────────────────────────────────────
+  selector:
+    matchLabels:
+      app: multi-agent-manufacturing-system
+
+  # ─────────────────────────────────────────────
+  # Rolling Update Strategy
+  # This is the core of zero-downtime deployment
+  #
+  # maxSurge: 1       → allow 1 extra pod during update
+  #                     so we briefly have 3 pods (2+1)
+  #                     before old ones are removed
+  #
+  # maxUnavailable: 0 → never kill an old pod until
+  #                     a new pod is fully healthy
+  #                     guarantees zero downtime
+  # ─────────────────────────────────────────────
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # ─────────────────────────────────────────────
+  # Pod Template — defines what each pod looks like
+  # ─────────────────────────────────────────────
+  template:
+    metadata:
+      labels:
+        app: multi-agent-manufacturing-system
+
+    spec:
+      containers:
+        - name: multi-agent-manufacturing-system
+          # ─────────────────────────────────────
+          # Image from Docker Hub
+          # GitHub Actions will update this tag
+          # on every push (v1 → v2 → v3 etc.)
+          # ─────────────────────────────────────
+          image: tiwariom/multi-agent-manufacturing-system:latest
+
+          # ─────────────────────────────────────
+          # Always pull latest image from Docker Hub
+          # Ensures rolling update gets the new version
+          # ─────────────────────────────────────
+          imagePullPolicy: Always
+
+          # ─────────────────────────────────────
+          # Expose Streamlit port inside the pod
+          # ─────────────────────────────────────
+          ports:
+            - containerPort: 8501
+
+          # ─────────────────────────────────────
+          # Resource limits
+          # Prevents one pod eating all memory/CPU
+          # requests → minimum guaranteed resources
+          # limits  → maximum allowed resources
+          # ─────────────────────────────────────
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          # ─────────────────────────────────────
+          # Readiness Probe
+          # K8s only sends traffic to a pod when
+          # this probe passes. During rolling update,
+          # old pod stays alive until new pod passes.
+          # This is what makes zero-downtime work.
+          # ─────────────────────────────────────
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 30      # Wait 30s before first check
+            periodSeconds: 10            # Check every 10s
+            failureThreshold: 3          # Fail 3 times before marking unhealthy
+
+          # ─────────────────────────────────────
+          # Liveness Probe
+          # K8s restarts a pod if this probe fails
+          # Catches cases where app is running but
+          # stuck/frozen
+          # ─────────────────────────────────────
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 60      # Give app time to fully start
+            periodSeconds: 15
+            failureThreshold: 3
