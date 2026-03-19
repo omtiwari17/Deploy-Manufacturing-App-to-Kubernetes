@@ -3,13 +3,13 @@ kind: Service
 metadata:
   name: multi-agent-manufacturing-service
   labels:
-    app: multi-agent-manufacturing
+    app: multi-agent-manufacturing-system
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
   type: LoadBalancer
   selector:
-    app: multi-agent-manufacturing
+    app: multi-agent-manufacturing-system
   ports:
     - name: streamlit
       protocol: TCP
