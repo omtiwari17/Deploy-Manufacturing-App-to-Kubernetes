@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 LABEL maintainer="omtiwari17"
 LABEL project="multi-agent-manufacturing"
-LABEL version="1.0"
+LABEL version="2.0"
 # OS build tools and git for clone
 RUN apt-get update && apt-get install -y \
     build-essential \
