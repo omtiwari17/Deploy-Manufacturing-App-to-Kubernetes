@@ -2,3 +2,4 @@
 .github
 k8s
 *.md
+eks-setup.ps1
